@@ -2,6 +2,7 @@
 import pdfParse from "pdf-parse/lib/pdf-parse.js";
 import workspaceModel from "../models/workspace.model.js";
 import documentModel from "../models/document.model.js";
+import splitTextIntoChunks from "../utils/textSplitter.js";
 
 export const uploadDocument = async (req, res) => {
     try {
@@ -110,3 +111,55 @@ export const getWorkspaceDocuments = async (req, res) => {
         });
     }
 };
+
+
+export const testDocumentChunking = async (req, res) => {
+    try {
+        const { documentId } = req.params;
+
+        // 1. Find the document owned by the logged-in user
+        const document = await documentModel.findOne({
+            _id: documentId,
+            owner: req.user.userId
+        });
+
+        if (!document) {
+            return res.status(404).json({
+                message: "Document not found"
+            });
+        }
+
+        // 2. Get the extracted text saved in MongoDB
+        const extractedText = document.extractedText;
+
+        if (!extractedText) {
+            return res.status(400).json({
+                message: "No extracted text available"
+            });
+        }
+
+        // 3. Split the extracted text into chunks
+        const chunks = await splitTextIntoChunks(extractedText);
+
+        // 4. Return the chunks for testing
+        return res.status(200).json({
+            message: "Document chunked successfully",
+            documentName: document.name,
+            totalChunks: chunks.length,
+            chunks
+        });
+    } catch (error) {
+        if (error.name === "CastError") {
+            return res.status(400).json({
+                message: "Invalid document ID"
+            });
+        }
+
+        console.error("Document chunking error:", error.message);
+
+        return res.status(500).json({
+            message: "Failed to chunk document"
+        });
+    }
+};
+
