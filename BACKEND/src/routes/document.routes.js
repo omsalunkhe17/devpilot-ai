@@ -1,6 +1,8 @@
 
 import express from "express";
-import { uploadDocument } from "../controllers/document.controller.js";
+import { uploadDocument ,
+    getWorkspaceDocuments
+} from "../controllers/document.controller.js";
 import upload from "../middleware/upload.middleware.js";
 import { authUser } from "../middleware/auth.middleware.js";
 
@@ -11,6 +13,12 @@ router.post(
     authUser,
     upload.single("document"),
     uploadDocument
+);
+
+router.get(
+    "/:workspaceId",
+    authUser,
+    getWorkspaceDocuments
 );
 
 export default router;

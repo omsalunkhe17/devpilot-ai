@@ -65,3 +65,48 @@ export const uploadDocument = async (req, res) => {
         });
     }
 };
+
+
+
+export const getWorkspaceDocuments = async (req, res) => {
+    try {
+        const { workspaceId } = req.params;
+
+        // Verify that the workspace belongs to the logged-in user
+        const workspace = await workspaceModel.findOne({
+            _id: workspaceId,
+            owner: req.user.userId
+        });
+
+        if (!workspace) {
+            return res.status(404).json({
+                message: "Workspace not found"
+            });
+        }
+
+        // Fetch documents belonging to this workspace and user
+        const documents = await documentModel
+            .find({
+                workspace: workspace._id,
+                owner: req.user.userId
+            })
+            .select("-extractedText")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            documents
+        });
+    } catch (error) {
+        if (error.name === "CastError") {
+            return res.status(400).json({
+                message: "Invalid workspace ID"
+            });
+        }
+
+        console.error("Fetch documents error:", error.message);
+
+        return res.status(500).json({
+            message: "Failed to fetch documents"
+        });
+    }
+};
